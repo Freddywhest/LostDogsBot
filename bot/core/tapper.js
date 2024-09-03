@@ -151,7 +151,6 @@ class Tapper {
       const data = parser.toJson(
         decodeURIComponent(this.#clean_tg_web_data(tgWebData))
       );
-      console.log(parser.toQueryString(data));
 
       return parser.toQueryString(data);
     } catch (error) {
