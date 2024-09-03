@@ -425,6 +425,16 @@ class Tapper {
               profile_data?.lostDogsWayGameStatus?.gameState?.roundEndsAt
             );
 
+        const calculation_ends = isNaN(
+          parseInt(
+            profile_data?.lostDogsWayGameStatus?.gameState?.calculationEndsAt
+          )
+        )
+          ? 0
+          : parseInt(
+              profile_data?.lostDogsWayGameStatus?.gameState?.calculationEndsAt
+            );
+
         const game_ends = isNaN(
           parseInt(profile_data?.lostDogsWayGameStatus?.gameState?.gameEndsAt)
         )
@@ -432,15 +442,25 @@ class Tapper {
           : parseInt(
               profile_data?.lostDogsWayGameStatus?.gameState?.gameEndsAt
             );
-        logger.info(
-          `<ye>[${this.bot_name}]</ye> | ${
-            this.session_name
-          } |  Current round ends <lb>${moment(
-            new Date(round_ends * 1000)
-          ).fromNow()}</lb> | Game ends: <lb>${moment(
-            new Date(game_ends * 1000)
-          ).fromNow()}</lb>`
-        );
+        if (calculation_ends > 0) {
+          logger.info(
+            `<ye>[${this.bot_name}]</ye> | ${
+              this.session_name
+            } | Vote ended | Calculation ends <lb>${moment(
+              new Date(calculation_ends * 1000)
+            ).fromNow()}</lb>`
+          );
+        } else if (round_ends > 0 && game_ends > 0) {
+          logger.info(
+            `<ye>[${this.bot_name}]</ye> | ${
+              this.session_name
+            } |  Current round ends <lb>${moment(
+              new Date(round_ends * 1000)
+            ).fromNow()}</lb> | Game ends <lb>${moment(
+              new Date(game_ends * 1000)
+            ).fromNow()}</lb>`
+          );
+        }
       } catch (error) {
         logger.error(
           `<ye>[${this.bot_name}]</ye> | ${this.session_name} | ❗️Unknown error: ${error}`
