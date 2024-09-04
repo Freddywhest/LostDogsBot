@@ -154,6 +154,12 @@ class Tapper {
 
       return parser.toQueryString(data);
     } catch (error) {
+      if (error.message.includes("AUTH_KEY_DUPLICATED")) {
+        logger.error(
+          `<ye>[${this.bot_name}]</ye> | ${this.session_name} | The same authorization key (session file) was used in more than one place simultaneously. You must delete your session file and create a new session`
+        );
+        return null;
+      }
       const regex = /A wait of (\d+) seconds/;
       if (
         error.message.includes("FloodWaitError") ||
@@ -179,11 +185,11 @@ class Tapper {
           `<ye>[${this.bot_name}]</ye> | ${this.session_name} | ❗️Unknown error during Authorization: ${error}`
         );
       }
-      throw error;
+      return null;
     } finally {
-      if (this.tg_client.connected) {
+      /* if (this.tg_client.connected) {
         await this.tg_client.destroy();
-      }
+      } */
       await sleep(1);
       if (!this.runOnce) {
         logger.info(
@@ -258,7 +264,14 @@ class Tapper {
         if (currentTime - access_token_created_time >= 3600) {
           http_client.defaults.headers["host"] = app.host;
           const tg_web_data = await this.#get_tg_web_data();
-
+          if (
+            _.isNull(tg_web_data) ||
+            _.isUndefined(tg_web_data) ||
+            !tg_web_data ||
+            _.isEmpty(tg_web_data)
+          ) {
+            continue;
+          }
           http_client.defaults.headers["x-auth-token"] = `${tg_web_data}`;
           access_token_created_time = currentTime;
           await sleep(2);
@@ -425,16 +438,6 @@ class Tapper {
               profile_data?.lostDogsWayGameStatus?.gameState?.roundEndsAt
             );
 
-        const calculation_ends = isNaN(
-          parseInt(
-            profile_data?.lostDogsWayGameStatus?.gameState?.calculationEndsAt
-          )
-        )
-          ? 0
-          : parseInt(
-              profile_data?.lostDogsWayGameStatus?.gameState?.calculationEndsAt
-            );
-
         const game_ends = isNaN(
           parseInt(profile_data?.lostDogsWayGameStatus?.gameState?.gameEndsAt)
         )
@@ -442,25 +445,15 @@ class Tapper {
           : parseInt(
               profile_data?.lostDogsWayGameStatus?.gameState?.gameEndsAt
             );
-        if (calculation_ends > 0) {
-          logger.info(
-            `<ye>[${this.bot_name}]</ye> | ${
-              this.session_name
-            } | Vote ended | Calculation ends <lb>${moment(
-              new Date(calculation_ends * 1000)
-            ).fromNow()}</lb>`
-          );
-        } else if (round_ends > 0 && game_ends > 0) {
-          logger.info(
-            `<ye>[${this.bot_name}]</ye> | ${
-              this.session_name
-            } |  Current round ends <lb>${moment(
-              new Date(round_ends * 1000)
-            ).fromNow()}</lb> | Game ends <lb>${moment(
-              new Date(game_ends * 1000)
-            ).fromNow()}</lb>`
-          );
-        }
+        logger.info(
+          `<ye>[${this.bot_name}]</ye> | ${
+            this.session_name
+          } |  Current round ends <lb>${moment(
+            new Date(round_ends * 1000)
+          ).fromNow()}</lb> | Game ends: <lb>${moment(
+            new Date(game_ends * 1000)
+          ).fromNow()}</lb>`
+        );
       } catch (error) {
         logger.error(
           `<ye>[${this.bot_name}]</ye> | ${this.session_name} | ❗️Unknown error: ${error}`
