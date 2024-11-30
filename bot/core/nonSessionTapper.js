@@ -160,23 +160,32 @@ class NonSessionTapper {
         const currentTime = Date.now() / 1000;
         if (currentTime - access_token_created_time >= 3600) {
           const tg_web_data = await this.#get_tg_web_data();
+          if (
+            _.isNull(tg_web_data) ||
+            _.isUndefined(tg_web_data) ||
+            !tg_web_data ||
+            _.isEmpty(tg_web_data)
+          ) {
+            continue;
+          }
 
           http_client.defaults.headers["x-auth-token"] = `${tg_web_data}`;
           access_token_created_time = currentTime;
           await sleep(2);
         }
+
         profile_data = await this.api.get_user_data(http_client);
         if (_.isEmpty(profile_data)) {
           continue;
         }
-        bones_balance = profile_data?.lostDogsWayUserInfo?.gameDogsBalance;
         woof_balance = _.floor(
-          parseInt(profile_data?.lostDogsWayUserInfo?.woofBalance) / 1000000000
+          parseInt(profile_data?.lostDogsWayMovieUserInfo?.woofBalance) /
+            1000000000
         );
         logger.info(
-          `<ye>[${this.bot_name}]</ye> | ${this.session_name} | 🐶 Woof balance: <gr>${woof_balance} $WOOF</gr> | 🦴 Bones balance: <gr>${bones_balance} Bones</gr>`
+          `<ye>[${this.bot_name}]</ye> | ${this.session_name} | 🐶 Woof balance: <gr>${woof_balance} $WOOF</gr>`
         );
-        prev_round_data = profile_data?.lostDogsWayUserInfo?.prevRoundVote;
+        prev_round_data = profile_data?.lostDogsWayMovieUserInfo?.prevRoundVote;
 
         if (!_.isEmpty(prev_round_data)) {
           logger.info(
@@ -194,12 +203,13 @@ class NonSessionTapper {
             );
           }
 
-          await this.api.view_prev_votes(http_client);
+          /*  await this.api.view_prev_votes(http_client); */
         }
+
         await sleep(5);
 
         const current_round =
-          profile_data?.lostDogsWayUserInfo?.currentRoundVote;
+          profile_data?.lostDogsWayMovieUserInfo?.currentRoundVote;
 
         if (_.isEmpty(current_round)) {
           let card;
@@ -213,65 +223,17 @@ class NonSessionTapper {
 
           if (!_.isEmpty(vote_result)) {
             logger.info(
-              `<ye>[${this.bot_name}]</ye> | ${this.session_name} | 🐶 Voted for card <bl>${vote_result?.selectedRoundCardValue}</bl> | Spend Bones: <la>${vote_result?.spentGameDogsCount}</la>`
+              `<ye>[${this.bot_name}]</ye> | ${this.session_name} | 🐶 Voted for card <bl>${vote_result?.selectedRoundCardValue}</bl>`
             );
           }
         } else {
           logger.info(
-            `<ye>[${this.bot_name}]</ye> | ${this.session_name} | 🐶 Voted card: <pi>${current_round?.selectedRoundCardValue}</pi> | Bones spent: <ye>${current_round?.spentGameDogsCount}</ye>`
+            `<ye>[${this.bot_name}]</ye> | ${this.session_name} | 🐶 Voted card: <pi>${current_round?.selectedRoundCardValue}</pi>`
           );
         }
         await sleep(5);
 
         if (settings.AUTO_CLAIM_TASKS) {
-          const personal_tasks = await this.api.get_personal_tasks(http_client);
-          await sleep(2);
-
-          const event_data = {
-            commonPageView: "yourDog",
-            timeMs: Date.now(),
-          };
-
-          await this.api.save_game_event(
-            http_client,
-            event_data,
-            "Common Page View"
-          );
-
-          for (const task of personal_tasks) {
-            const sleep_time = _.random(5, 10);
-            logger.info(
-              `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Sleeping ${sleep_time} seconds to claim: <bl>${task?.name}</bl>`
-            );
-            await sleep(sleep_time);
-            const task_id = task?.id;
-            const personal_tasks_claim = await this.api.perform_task(
-              http_client,
-              task_id
-            );
-            if (
-              !_.isEmpty(personal_tasks_claim) &&
-              personal_tasks_claim?.success
-            ) {
-              logger.info(
-                `<ye>[${this.bot_name}]</ye> | ${
-                  this.session_name
-                } | Claimed task: <bl>${task?.name}</bl> | Reward: <gr>${
-                  !isNaN(parseInt(personal_tasks_claim?.woofReward))
-                    ? parseInt(personal_tasks_claim?.woofReward) / 1000000000 +
-                      " $WOOF"
-                    : "N/A"
-                }</gr>`
-              );
-            } else {
-              logger.warning(
-                `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Failed to claim task: <bl>${task?.name}</bl>`
-              );
-            }
-          }
-
-          await sleep(5);
-
           const get_common_tasks = await this.api.get_common_tasks(http_client);
           const get_done_common_tasks = await this.api.get_done_common_tasks(
             http_client
@@ -282,9 +244,58 @@ class NonSessionTapper {
               task?.customCheckStrategy == null
           );
 
+          const adsGram = get_common_tasks?.filter(
+            (task) =>
+              !get_done_common_tasks?.includes(task?.id) &&
+              task?.customCheckStrategy == "adsGram"
+          );
+
+          if (!_.isEmpty(adsGram)) {
+            let ad_count = 0;
+            while (ad_count < 3) {
+              const sleep_time = _.random(15, 20);
+              logger.info(
+                `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Sleeping ${sleep_time} seconds to claim: <bl>Ads Gram</bl>`
+              );
+              await sleep(sleep_time);
+
+              const adsData = adsGram[0];
+              const task_id = adsData?.id;
+              const common_tasks_claim = await this.api.perform_ads_gram(
+                http_client,
+                task_id
+              );
+              if (
+                !_.isEmpty(common_tasks_claim) &&
+                common_tasks_claim?.success
+              ) {
+                logger.info(
+                  `<ye>[${this.bot_name}]</ye> | ${
+                    this.session_name
+                  } | Claimed task: <bl>Ads Gram</bl> | Reward: <gr>${
+                    !isNaN(parseInt(common_tasks_claim?.task?.woofReward))
+                      ? parseInt(common_tasks_claim?.task?.woofReward) /
+                          1000000000 +
+                        " $WOOF"
+                      : "N/A"
+                  }</gr>`
+                );
+                if (!common_tasks_claim?.watchMore) {
+                  break;
+                }
+              } else {
+                logger.warning(
+                  `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Failed to claim task: <bl>${task?.name}</bl>`
+                );
+                break;
+              }
+              ad_count++;
+            }
+          }
+
           if (!_.isEmpty(undone_tasks)) {
             for (const task of undone_tasks) {
-              const sleep_time = _.random(5, 10);
+              const sleep_time = _.random(10, 15);
               logger.info(
                 `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Sleeping ${sleep_time} seconds to claim: <bl>${task?.name}</bl>`
               );
@@ -302,8 +313,9 @@ class NonSessionTapper {
                   `<ye>[${this.bot_name}]</ye> | ${
                     this.session_name
                   } | Claimed task: <bl>${task?.name}</bl> | Reward: <gr>${
-                    !isNaN(parseInt(common_tasks_claim?.woofReward))
-                      ? parseInt(common_tasks_claim?.woofReward) / 1000000000 +
+                    !isNaN(parseInt(common_tasks_claim?.task?.woofReward))
+                      ? parseInt(common_tasks_claim?.task?.woofReward) /
+                          1000000000 +
                         " $WOOF"
                       : "N/A"
                   }</gr>`
@@ -320,19 +332,23 @@ class NonSessionTapper {
         await sleep(5);
 
         const round_ends = isNaN(
-          parseInt(profile_data?.lostDogsWayGameStatus?.gameState?.roundEndsAt)
+          parseInt(
+            profile_data?.lostDogsWayMovieGameStatus?.gameState?.roundEndsAt
+          )
         )
           ? 0
           : parseInt(
-              profile_data?.lostDogsWayGameStatus?.gameState?.roundEndsAt
+              profile_data?.lostDogsWayMovieGameStatus?.gameState?.roundEndsAt
             );
 
         const game_ends = isNaN(
-          parseInt(profile_data?.lostDogsWayGameStatus?.gameState?.gameEndsAt)
+          parseInt(
+            profile_data?.lostDogsWayMovieGameStatus?.gameState?.gameEndsAt
+          )
         )
           ? 0
           : parseInt(
-              profile_data?.lostDogsWayGameStatus?.gameState?.gameEndsAt
+              profile_data?.lostDogsWayMovieGameStatus?.gameState?.gameEndsAt
             );
         logger.info(
           `<ye>[${this.bot_name}]</ye> | ${
@@ -344,6 +360,8 @@ class NonSessionTapper {
           ).fromNow()}</lb>`
         );
       } catch (error) {
+        console.log(error);
+
         logger.error(
           `<ye>[${this.bot_name}]</ye> | ${this.session_name} | ❗️Unknown error: ${error}`
         );

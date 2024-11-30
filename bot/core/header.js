@@ -1,18 +1,22 @@
 const app = require("../config/app");
 
 const headers = {
-  "content-type": "application/json",
+  "sec-ch-ua-platform": '"Android"',
+  "sec-ch-ua":
+    '"Chromium";v="130", "Android WebView";v="130", "Not?A_Brand";v="99"',
+  "sec-ch-ua-mobile": "?1",
+  "x-gg-client": "v:1 l:en",
   accept: "*/*",
-  "sec-fetch-site": "cross-site",
-  "accept-encoding": "gzip, deflate",
-  "accept-language": "en-US,en;q=0.9",
-  "sec-fetch-mode": "cors",
-  origin: app.origin,
+  "content-type": "application/json",
   "user-agent":
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
-  referer: app.referer,
+    "Mozilla/5.0 (Linux; Android 13; SM-G925F Build/TQ3A.230901.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.6723.107 Mobile Safari/537.36",
+  origin: "https://dog-ways.newcoolproject.io",
+  "sec-fetch-site": "cross-site",
+  "sec-fetch-mode": "cors",
   "sec-fetch-dest": "empty",
-  "x-requested-with": "org.telegram.messenger.web",
+  referer: "https://dog-ways.newcoolproject.io/",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "accept-language": "en,en-US;q=0.9",
   priority: "u=1, i",
 };
 

@@ -12,7 +12,7 @@ class ApiRequest {
   async get_user_data(http_client) {
     try {
       const response = await http_client.get(
-        `${app.apiUrl}?operationName=getHomePage&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%226d07a34b66170fe08f878f8d8b000a5611bd7c8cee8729e5dc41ae848fab4352%22%7D%7D`
+        `${app.apiUrl}?operationName=getHomePage&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22b8533aa38c500ac8bc980bc9f9cf22ed2a8854df716a748f1a4c561598acc4ca%22%7D%7D`
       );
 
       if (_.isEmpty(response?.data?.data)) {
@@ -31,46 +31,31 @@ class ApiRequest {
           );
         }
       }
-      const json_data = {
-        launch: true,
-        timeMs: Date.now(),
-      };
+      const json_data = [
+        {
+          launch: true,
+          timeMs: Date.now(),
+        },
+      ];
       await this.save_game_event(http_client, json_data, "Launch");
       return response?.data?.data;
     } catch (error) {
-      const regex = /ENOTFOUND\s([^\s]+)/;
-      const match = error.message.match(regex);
-      logger.error(
-        `<ye>[${this.bot_name}]</ye> | ${
-          this.session_name
-        } | Error while getting User Data: ${
-          error.message.includes("ENOTFOUND") ||
-          error.message.includes("getaddrinfo") ||
-          error.message.includes("ECONNREFUSED")
-            ? `The proxy server at ${
-                match && match[1] ? match[1] : "unknown address"
-              } could not be found. Please check the proxy address and your network connection`
-            : error.message
-        }`
-      );
-      return null;
-    }
-  }
+      if (error?.response?.status > 499) {
+        logger.error(
+          `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Server Error while <b>getting user data:</b>: ${error.message}`
+        );
+        return null;
+      }
 
-  async get_personal_tasks(http_client) {
-    try {
-      const response = await http_client.get(
-        `${app.apiUrl}?operationName=lostDogsWayWoofPersonalTasks&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22d94df8d9fce5bfdd4913b6b3b6ab71e2f9d6397e2a17de78872f604b9c53fe79%22%7D%7D`
-      );
-      return response?.data?.data?.lostDogsWayWoofPersonalTasks?.items?.filter(
-        (task) =>
-          task?.isCompleted === false &&
-          task?.id !== "connectWallet" &&
-          task?.id !== "joinSquad"
-      );
-    } catch (error) {
+      if (error?.response?.data?.message) {
+        logger.warning(
+          `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Error while <b>getting user data:</b> ${error?.response?.data?.message}`
+        );
+        return null;
+      }
+
       logger.error(
-        `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Error while <b>getting personal tasks:</b>: ${error.message}`
+        `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Error while <b>getting user data:</b>: ${error.message}`
       );
       return null;
     }
@@ -79,7 +64,7 @@ class ApiRequest {
   async get_common_tasks(http_client) {
     try {
       const response = await http_client.get(
-        `${app.apiUrl}?operationName=lostDogsWayCommonTasks&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%227c4ca1286c2720dda55661e40d6cb18a8f813bed50c2cf6158d709a116e1bdc1%22%7D%7D`
+        `${app.apiUrl}?operationName=getCommonTasks&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2242a3feca70931a1379e281f50da56eb6ca09f90ca5540a551425091bba106e83%22%7D%7D`
       );
       return response?.data?.data?.lostDogsWayCommonTasks?.items;
     } catch (error) {
@@ -93,9 +78,9 @@ class ApiRequest {
   async get_done_common_tasks(http_client) {
     try {
       const response = await http_client.get(
-        `${app.apiUrl}?operationName=lostDogsWayUserCommonTasksDone&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%2299a387150779864b6b625e336bfd28bbc8064b66f9a1b6a55ee96b8777678239%22%7D%7D`
+        `${app.apiUrl}?operationName=lostDogsWayUserCommonTasksDone&variables=%7B%7D&extensions=%7B%22persistedQuery%22%3A%7B%22version%22%3A1%2C%22sha256Hash%22%3A%22d731fbc9cb7638793fbbd157078074a1a1cc45cdb72ba3e00c1defc621f7d411%22%7D%7D`
       );
-      return response?.data?.data?.lostDogsWayUserCommonTasksDone;
+      return response?.data?.data?.lostDogsWayMovieUserCommonTasksDone;
     } catch (error) {
       logger.error(
         `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Error while <b>getting common tasks:</b>: ${error.message}`
@@ -104,18 +89,18 @@ class ApiRequest {
     }
   }
 
-  async perform_task(http_client, task_id) {
+  async perform_common_task(http_client, task_id) {
     try {
       const data = {
-        operationName: "lostDogsWayCompleteTask",
+        operationName: "lostDogsWayCompleteCommonTask",
         variables: {
-          type: task_id,
+          id: task_id,
         },
         extensions: {
           persistedQuery: {
             version: 1,
             sha256Hash:
-              "4c8a2a1192a55e9e84502cdd7a507efd5c98d3ebcb147e307dafa3ec40dca60a",
+              "b0b06f8d88d1ebf3d8d8a4ac9281682adf955bcc185427ea9595fd8b568bacb0",
           },
         },
       };
@@ -123,20 +108,89 @@ class ApiRequest {
         `${app.apiUrl}`,
         JSON.stringify(data)
       );
-      return response.data?.data?.lostDogsWayCompleteTask;
+
+      /* const event_data = [
+        {
+          timeMs: Date.now(),
+          yourDogGetFreeDogs: true,
+        },
+      ];
+
+      await this.save_game_event(http_client, event_data, "Complete Task"); */
+
+      if (
+        _.isEmpty(response?.data?.data) &&
+        !_.isEmpty(response?.data?.errors)
+      ) {
+        logger.warning(
+          `<ye>[${this.bot_name}]</ye> | ${this.session_name} | ${response?.data?.errors[0]?.message} <la>[${task_id}]</la>`
+        );
+        return null;
+      }
+      return response.data?.data?.lostDogsWayMovieCompleteCommonTask;
     } catch (error) {
       logger.error(
-        `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Error while <b>performing task:</b> ${error.message}`
+        `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Error while <b>performing common task:</b> ${error.message}`
       );
       return null;
     }
   }
+
+  async perform_ads_gram(http_client, task_id) {
+    try {
+      const data = {
+        operationName: "lostDogsWayApplyAdsGram",
+        variables: {
+          taskId: task_id,
+        },
+        extensions: {
+          persistedQuery: {
+            version: 1,
+            sha256Hash:
+              "6642132a95c3503b916158aecd45dacb48e306e7d9299f4c3eafd3121afc081b",
+          },
+        },
+      };
+      const response = await http_client.post(
+        `${app.apiUrl}`,
+        JSON.stringify(data)
+      );
+
+      if (
+        _.isEmpty(response?.data?.data) &&
+        !_.isEmpty(response?.data?.errors)
+      ) {
+        logger.warning(
+          `<ye>[${this.bot_name}]</ye> | ${this.session_name} | ${response?.data?.errors[0]?.message} <la>[${task_id}]</la>`
+        );
+        return null;
+      }
+      return response.data?.data?.lostDogsWayApplyAdsGram;
+    } catch (error) {
+      logger.error(
+        `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Error while <b>performing ads gram:</b> ${error.message}`
+      );
+      return null;
+    }
+  }
+
   async vote(http_client, card) {
     try {
-      const event_data = {
-        mainScreenVote: true,
-        timeMs: Date.now(),
-      };
+      const event_data = [
+        {
+          confirmChoice: {
+            screen: "Home",
+          },
+          timeMs: Date.now(),
+        },
+        {
+          payForCard: {
+            screen: "SelectAmount",
+          },
+          timeMs: Date.now(),
+        },
+      ];
+
       await this.save_game_event(http_client, event_data, "MainScreen Vote");
       await sleep(_.random(2, 4));
       const data = {
@@ -148,7 +202,7 @@ class ApiRequest {
           persistedQuery: {
             version: 1,
             sha256Hash:
-              "6fc1d24c3d91a69ebf7467ebbed43c8837f3d0057a624cdb371786477c12dc2f",
+              "e0871ed2837432448975c7d535b989d285a0d203c99e86dbec8d903df60a2f32",
           },
         },
       };
@@ -166,6 +220,7 @@ class ApiRequest {
     }
   }
 
+  //TODO:
   async view_prev_votes(http_client) {
     try {
       const data = {
@@ -187,51 +242,6 @@ class ApiRequest {
     } catch (error) {
       logger.error(
         `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Error while <b>verifying previous votes:</b> ${error.message}`
-      );
-      return null;
-    }
-  }
-
-  async perform_common_task(http_client, task_id) {
-    try {
-      const data = {
-        operationName: "lostDogsWayCompleteCommonTask",
-        variables: {
-          id: task_id,
-        },
-        extensions: {
-          persistedQuery: {
-            version: 1,
-            sha256Hash:
-              "313971cc7ece72b8e8edce3aa0bc72f6e40ef1c242250804d72b51da20a8626d",
-          },
-        },
-      };
-      const response = await http_client.post(
-        `${app.apiUrl}`,
-        JSON.stringify(data)
-      );
-
-      const event_data = {
-        timeMs: Date.now(),
-        yourDogGetFreeDogs: true,
-      };
-
-      await this.save_game_event(http_client, event_data, "Complete Task");
-
-      if (
-        _.isEmpty(response?.data?.data) &&
-        !_.isEmpty(response?.data?.errors)
-      ) {
-        logger.warning(
-          `<ye>[${this.bot_name}]</ye> | ${this.session_name} | ${response?.data?.errors[0]?.message} <la>[${task_id}]</la>`
-        );
-        return null;
-      }
-      return response.data?.data?.lostDogsWayCompleteTask;
-    } catch (error) {
-      logger.error(
-        `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Error while <b>performing common task:</b> ${error.message}`
       );
       return null;
     }
@@ -275,7 +285,7 @@ class ApiRequest {
         operationName: "lostDogsWaySaveEvent",
         variables: {
           data: {
-            events: [data],
+            events: data,
             utm: {
               campaign: null,
               content: null,
@@ -289,7 +299,7 @@ class ApiRequest {
           persistedQuery: {
             version: 1,
             sha256Hash:
-              "0b910804d22c9d614a092060c4f1809ee6e1fc0625ddb30ca08ac02bac32936a",
+              "08bf5c27603fce73333f322d205ed3648f7056be326c52610eb51f7f5a693d0f",
           },
         },
       };
@@ -298,7 +308,7 @@ class ApiRequest {
         JSON.stringify(json)
       );
 
-      if (response?.data?.data?.lostDogsWaySaveEvent == true) {
+      if (response?.data?.data?.lostDogsWayMovieSaveEvent == true) {
         logger.info(
           `<ye>[${this.bot_name}]</ye> | ${this.session_name} | Game event <la>${event_name}</la> saved successfully`
         );
